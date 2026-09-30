@@ -50,7 +50,7 @@ var options =
 // Create context
 using var context = new TrainingCenterDbContext(options);
 
-// Test connectio
+// Test connection
 if (!context.Database.CanConnect())
 {
     Console.WriteLine("Could not connect.");
@@ -61,4 +61,5 @@ Console.WriteLine("Connected successfully.");
 Console.WriteLine();
 
 // Run examples
+QeruryData.GetStudentNames(context);
 
