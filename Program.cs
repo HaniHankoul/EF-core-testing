@@ -61,5 +61,5 @@ Console.WriteLine("Connected successfully.");
 Console.WriteLine();
 
 // Run examples
-QeruryData.GetStudentNames(context);
+QeruryData.ShowStudentsPerStatusHaving(context);
 

@@ -299,11 +299,402 @@ class QeruryData
         Console.WriteLine();
     }
 
+    /// <summary>
+    /// Demonstrates combining Where(), Select(), and OrderByDescending().
+    /// </summary>
+    public static void GetFilteredSortedStudents(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Filtered Projection With Sorting");
+        Console.WriteLine("--------------------------------");
+        Console.WriteLine();
+
+        // Build query first
+        var query =
+            context.Students
+                   .Where(s => s.Status == "Active") // Filter
+                   .Select(s => new                  // Projection
+                   {
+                       s.StudentId,
+                       FullName = s.FirstName + " " + s.LastName
+                   })
+                   .OrderByDescending(s => s.StudentId); // Sorting
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        var students = query.ToList();
+
+        // Print results
+        Console.WriteLine("\n\nFiltered Students:");
+        Console.WriteLine("------------------");
+
+        foreach (var student in students)
+        {
+            Console.WriteLine($"{student.StudentId} - {student.FullName}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Total Students: {students.Count}");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Demonstrates Any() and All().
+    /// </summary>
+    public static void CheckDataWithAnyAndAll(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Any() and All() Example");
+        Console.WriteLine("-----------------------");
+        Console.WriteLine();
+
+        // --------------------------------------------------
+        // Any() Example
+        // --------------------------------------------------
+
+        // Build query first
+        var activeStudentsQuery =
+            context.Students
+                   .Where(s => s.Status == "Active");
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(activeStudentsQuery.ToQueryString());
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Any().
+        bool hasActiveStudents =
+            activeStudentsQuery.Any();
+
+        Console.WriteLine($"Has Active Students: {hasActiveStudents}");
+        Console.WriteLine();
+
+        // --------------------------------------------------
+        // All() Example
+        // --------------------------------------------------
+
+        // Build query first
+        var coursesQuery =
+            context.Courses;
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(coursesQuery.ToQueryString());
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for All().
+        bool allCoursesValid =
+            coursesQuery.All(c => c.Price > 0);
+
+        Console.WriteLine($"All Courses Price > 0: {allCoursesValid}");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Compares bad vs good COUNT approach.
+    /// </summary>
+    public static void CompareCount(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("COUNT EXAMPLE");
+        Console.WriteLine();
+
+        Console.WriteLine("BAD WAY:");
+        Console.WriteLine();
+
+        // Build query first
+        var badQuery =
+            context.Students;
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(badQuery.ToQueryString());
+
+        // Execute query and load all rows into memory
+        var students = badQuery.ToList();
+
+        // Count happens in memory after data is already loaded
+        int badCount =
+            students.Count(s => s.Status == "Active");
+
+        Console.WriteLine($"Bad Count (calculated in memory): {badCount}");
+        Console.WriteLine();
+
+        Console.WriteLine("GOOD WAY:");
+        Console.WriteLine();
+
+        // Build query first
+        var goodQuery =
+            context.Students
+                   .Where(s => s.Status == "Active");
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(goodQuery.ToQueryString());
+
+        // Execute COUNT in the database
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Count().
+        int goodCount =
+            goodQuery.Count();
+
+        Console.WriteLine($"Good Count (calculated in database): {goodCount}");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Compares bad vs good AVERAGE approach.
+    /// </summary>
+    public static void CompareAverage(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("AVERAGE EXAMPLE");
+        Console.WriteLine();
+
+        Console.WriteLine("BAD WAY:");
+        Console.WriteLine();
+
+        // Build query first
+        var badQuery =
+            context.Enrollments;
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(badQuery.ToQueryString());
+
+        // Execute query and load all rows into memory
+        var enrollments = badQuery.ToList();
+
+        // Average happens in memory after data is already loaded
+        decimal badAverage =
+            enrollments.Average(e => e.ProgressPercent);
+
+        Console.WriteLine($"Bad Average (calculated in memory): {badAverage}");
+        Console.WriteLine();
+
+        Console.WriteLine("GOOD WAY:");
+        Console.WriteLine();
+
+        // Build query first
+        var goodQuery =
+            context.Enrollments
+                   .Select(e => e.ProgressPercent);
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(goodQuery.ToQueryString());
+
+        // Execute AVERAGE in the database
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Average().
+        decimal goodAverage =
+            goodQuery.Average();
+
+        Console.WriteLine($"Good Average (calculated in database): {goodAverage}");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Compares bad vs good SUM approach.
+    /// </summary>
+    public static void CompareSum(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("SUM EXAMPLE");
+        Console.WriteLine();
+
+        Console.WriteLine("BAD WAY:");
+        Console.WriteLine();
+
+        // Build query first
+        var badQuery =
+            context.Courses;
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(badQuery.ToQueryString());
+
+        // Execute query and load all rows into memory
+        var courses = badQuery.ToList();
+
+        // Sum happens in memory after data is already loaded
+        int badSum =
+            courses.Sum(c => c.DurationHours);
+
+        Console.WriteLine($"Bad Sum (calculated in memory): {badSum}");
+        Console.WriteLine();
+
+        Console.WriteLine("GOOD WAY:");
+        Console.WriteLine();
+
+        // Build query first
+        var goodQuery =
+            context.Courses
+                   .Select(c => c.DurationHours);
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(goodQuery.ToQueryString());
+
+        // Execute SUM in the database
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Sum().
+        int goodSum =
+            goodQuery.Sum();
+
+        Console.WriteLine($"Good Sum (calculated in database): {goodSum}");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Demonstrates Min() and Max() using TrainingCenterDB.
+    /// </summary>
+    public static void ShowMinMax(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Min() and Max() Example");
+        Console.WriteLine("-----------------------");
+        Console.WriteLine();
+
+        // --------------------------------------------------
+        // Lowest Course Price
+        // --------------------------------------------------
+
+        // Build query first
+        var coursePricesQuery =
+            context.Courses
+                   .Select(c => c.Price);
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(coursePricesQuery.ToQueryString());
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Min().
+        decimal lowestPrice =
+            coursePricesQuery.Min();
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Max().
+        decimal highestPrice =
+            coursePricesQuery.Max();
+
+        // --------------------------------------------------
+        // Earliest Registration Date
+        // --------------------------------------------------
+
+        // Build query first
+        var registrationDatesQuery =
+            context.Students
+                   .Select(s => s.RegisteredAt);
+
+        // Preview SQL query shape
+        PreviewSQLUsingToQueryString(registrationDatesQuery.ToQueryString());
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Min().
+        DateTime earliestRegistration =
+            registrationDatesQuery.Min();
+
+        // Print readable output
+        Console.WriteLine($"Lowest Course Price     : {lowestPrice}");
+        Console.WriteLine($"Highest Course Price    : {highestPrice}");
+        Console.WriteLine($"Earliest Registration   : {earliestRegistration:d}");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Shows unique student statuses using Distinct().
+    /// </summary>
+    public static void ShowDistinctStudentStatuses(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Unique Student Statuses");
+        Console.WriteLine("-----------------------");
+
+        // Build query first
+        var query =
+            context.Students
+                   .Select(s => s.Status)
+                   .Distinct();
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
 
 
 
+        // Execute query
+        var statuses = query.ToList();
 
+        Console.WriteLine();
+        // Print readable output
+        foreach (var status in statuses)
+        {
+            Console.WriteLine(status);
+        }
+    }
 
+    /// <summary>
+    /// Shows number of students grouped by status.
+    /// </summary>
+    public static void ShowStudentsGroupByStatusReport(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Students Per Status");
+        Console.WriteLine("-------------------");
+
+        // Build query first
+        var query =
+            context.Students
+                   .GroupBy(s => s.Status)
+                   .Select(g => new
+                   {
+                       Status = g.Key,
+                       TotalStudents = g.Count()
+                   })
+                   .OrderBy(x => x.Status);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Count().
+        var report = query.ToList();
+
+        Console.WriteLine();
+        // Print readable output
+        foreach (var row in report)
+        {
+            Console.WriteLine($"{row.Status} : {row.TotalStudents}");
+        }
+    }
+
+    /// <summary>
+    /// Shows statuses having more than 2 students.
+    /// </summary>
+    public static void ShowStudentsPerStatusHaving(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Statuses With More Than 2 Students");
+        Console.WriteLine("----------------------------------");
+
+        // Build query first
+        var query =
+            context.Students
+                   .GroupBy(s => s.Status)
+                   .Where(g => g.Count() > 6)
+                   .Select(g => new
+                   {
+                       Status = g.Key,
+                       TotalStudents = g.Count()
+                   })
+                   .OrderBy(x => x.Status);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(
+            query.ToQueryString());
+
+        // Execute query
+        var report = query.ToList();
+
+        Console.WriteLine();
+
+        foreach (var row in report)
+        {
+            Console.WriteLine(
+                $"{row.Status} : {row.TotalStudents}");
+        }
+    }
     static void PreviewSQLUsingToQueryString(string SQLString)
     {
         Console.WriteLine("\nPreview SQL using ToQueryString():");
