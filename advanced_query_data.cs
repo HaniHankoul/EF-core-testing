@@ -51,10 +51,6 @@ class AdvancedQueryData
         Console.WriteLine();
     }
 
-    private static void PreviewSQLUsingToQueryString(object value)
-    {
-        throw new NotImplementedException();
-    }
 
     /// <summary>
     /// Demonstrates the good approach by loading students with their enrollments using Include().
@@ -127,4 +123,228 @@ class AdvancedQueryData
         Console.WriteLine();
     }
 
+    /// <summary>
+    /// Loads students with their enrollments and related courses.
+    /// </summary>
+    public static void ShowStudentsWithEnrollmentsAndCourses(TrainingCenterDbContext context)
+    {
+        // Build query first
+        var query = context.Students
+            .Include(s => s.Enrollments)
+                .ThenInclude(e => e.Course)
+            .OrderBy(s => s.StudentId);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        var students = query.ToList();
+
+        Console.WriteLine("\nStudents With Enrollments and Courses:");
+        Console.WriteLine("--------------------------------------");
+
+        foreach (var student in students)
+        {
+            Console.WriteLine($"{student.StudentId} - {student.FirstName} {student.LastName}");
+
+            foreach (var enrollment in student.Enrollments)
+            {
+                Console.WriteLine(
+                    $"   Course: {enrollment.Course.Title}, " +
+                    $"Status: {enrollment.Status}, " +
+                    $"Progress: {enrollment.ProgressPercent}%");
+            }
+
+            Console.WriteLine();
+        }
+    }
+
+    /// <summary>
+    /// Shows a course report by joining Courses with Instructors.
+    /// </summary>
+    public static void ShowCourseReportWithJoin(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Course Report Using Join()");
+        Console.WriteLine("--------------------------");
+        Console.WriteLine();
+
+        // Build query first
+        var query =
+            context.Courses
+                   .Join(
+                       context.Instructors,
+                       course => course.InstructorId,
+                       instructor => instructor.InstructorId,
+                       (course, instructor) => new
+                       {
+                           course.Title,
+                           course.Code,
+                           InstructorName =
+                               instructor.FirstName + " " + instructor.LastName
+                       })
+                   .OrderBy(x => x.Title);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        var report = query.ToList();
+
+        // Print readable output
+        Console.WriteLine("Courses With Instructors:");
+        Console.WriteLine("-------------------------");
+
+        Console.WriteLine();
+        foreach (var row in report)
+        {
+            Console.WriteLine(
+                $"{row.Code} - {row.Title} - {row.InstructorName}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Total Courses: {report.Count}");
+    }
+
+    /// <summary>
+    /// Shows students with or without profiles using Left Join.
+    /// </summary>
+    public static void ShowStudentsWithProfilesWithLeftJoin(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Students With Profiles - Left Join");
+        Console.WriteLine("----------------------------------");
+        Console.WriteLine();
+
+        // Build query first
+        var report =
+            from s in context.Students
+            join p in context.StudentProfiles
+                on s.StudentId equals p.StudentId
+                into profileGroup
+            from p in profileGroup.DefaultIfEmpty()
+            select new
+            {
+                s.StudentId,
+                StudentName = s.FirstName + " " + s.LastName,
+                City = p != null ? p.City : "No Profile",
+                Country = p != null ? p.Country : "No Profile"
+            };
+
+        // Apply sorting
+        var query =
+            report.OrderBy(x => x.StudentId);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        var result = query.ToList();
+
+        // Print readable output
+        Console.WriteLine("Student Report:");
+        Console.WriteLine("---------------");
+
+        Console.WriteLine();
+        foreach (var row in result)
+        {
+            Console.WriteLine(
+                $"{row.StudentId} - {row.StudentName} - {row.City} - {row.Country}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Total Students: {result.Count}");
+    }
+
+    /// <summary>
+    /// Shows student enrollments by flattening Students -> Enrollments using SelectMany().
+    /// </summary>
+    public static void ShowStudentEnrollmentsWithSelectMany(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Student Enrollments Using SelectMany()");
+        Console.WriteLine("--------------------------------------");
+        Console.WriteLine();
+
+        // Build query first
+        var query =
+            context.Students
+                   .SelectMany(
+                       student => student.Enrollments,
+                       (student, enrollment) => new
+                       {
+                           student.StudentId,
+                           StudentName =
+                               student.FirstName + " " + student.LastName,
+                           enrollment.CourseId,
+                           enrollment.Status
+                       })
+                   .OrderBy(x => x.StudentId);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        var report = query.ToList();
+
+        Console.WriteLine("Student Course Registrations:");
+        Console.WriteLine("-----------------------------");
+        Console.WriteLine();
+
+        foreach (var row in report)
+        {
+            Console.WriteLine(
+                $"{row.StudentId} - {row.StudentName} - Course: {row.CourseId} - {row.Status}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Total Registrations: {report.Count}");
+    }
+
+    /// <summary>
+    /// Shows courses priced above the average course price using a subquery.
+    /// </summary>
+    public static void ShowExpensiveCourses(TrainingCenterDbContext context)
+    {
+        Console.WriteLine("Courses Priced Above Average");
+        Console.WriteLine("----------------------------");
+        Console.WriteLine();
+
+        // Build query first
+        var query =
+            context.Courses
+                   .Where(c =>
+                       c.Price >
+                       context.Courses.Average(x => x.Price))
+                   .OrderBy(c => c.Price);
+
+        // Preview SQL before execution
+        PreviewSQLUsingToQueryString(query.ToQueryString());
+
+        // Execute query
+        // ToQueryString previews query shape,
+        // runtime logging shows actual executed SQL for Average().
+        var courses = query.ToList();
+
+        // Print readable output
+        Console.WriteLine("\nExpensive Courses:");
+        Console.WriteLine("------------------");
+
+
+        Console.WriteLine();
+        foreach (var course in courses)
+        {
+            Console.WriteLine(
+                $"{course.Code} - {course.Title} - {course.Price}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"Total Courses: {courses.Count}");
+    }
+
+
+    private static void PreviewSQLUsingToQueryString(object value)
+    {
+        Console.WriteLine("\nPreview SQL using ToQueryString():");
+        Console.WriteLine("----------------------------------");
+        Console.WriteLine(value.ToString());
+        Console.WriteLine();
+    }
 }
