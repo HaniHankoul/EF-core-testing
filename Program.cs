@@ -61,5 +61,8 @@ Console.WriteLine("Connected successfully.");
 Console.WriteLine();
 
 // Run examples
-AdvancedQueryData.ShowCourseReportWithJoin(context);
+//AdvancedQueryData.ShowCourseReportWithJoin(context);
+CRUDtesting.ShowGoodUpdateUsingTrackedEntity(context);
+var student = context.Students.FirstOrDefault(s => s.StudentId == 1);
 
+Console.WriteLine(student.FirstName);
