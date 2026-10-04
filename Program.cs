@@ -62,7 +62,4 @@ Console.WriteLine();
 
 // Run examples
 //AdvancedQueryData.ShowCourseReportWithJoin(context);
-CRUDtesting.ShowGoodUpdateUsingTrackedEntity(context);
-var student = context.Students.FirstOrDefault(s => s.StudentId == 1);
-
-Console.WriteLine(student.FirstName);
+CRUDtesting.DeleteStudent(context, 41);
